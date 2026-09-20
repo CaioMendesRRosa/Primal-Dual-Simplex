@@ -1,6 +1,11 @@
 import numpy as np
 from scipy import optimize
 import simplex
+import simplexInv
+
+'''
+Algoritmo primal-dual
+'''
 
 class Primal:
 
@@ -48,15 +53,15 @@ class Primal:
     def __DefActiveSet (self):
         # Encontrando o conjunto das variaveis ativas
 
+        oldJ = self.__J
         self.__J = []
-        newJ = False
 
         for j in range (self.__columns):
-            if self.__Z[j] - (np.array(self.__y)) @ [self.__A[i][j] for i in range(self.__rows)] == 0:
+            if self.__Z[j] - (np.array(self.__y)) @ [self.__A[i][j] for i in range(self.__rows)] <= 1e-8:
                 self.__J.append(j)
-                newJ = True
 
-        return newJ
+        return not oldJ == self.__J
+
 
 
     def __BuildRSP (self):
@@ -84,11 +89,17 @@ class Primal:
         minMultiplier = np.inf
 
         for j in range(self.__columns):
+            if j in self.__J:
+                continue
+            
             Aj = [self.__A[i][j] for i in range(self.__rows)]
             mulNum = (self.__Z[j] - ( self.__y @ np.array(Aj)))
             mulDen = (simplexRSP.dualSol[:self.__rows]) @ np.array(Aj)
 
-            if mulDen > 0 and mulNum / mulDen < minMultiplier:
+            if mulNum < 1e-8:
+                continue
+
+            if mulDen > 1e-5 and mulNum / mulDen < minMultiplier:
                 minMultiplier = mulNum / mulDen
 
         return minMultiplier
@@ -98,6 +109,8 @@ class Primal:
         
         self.__Setup()
 
+        iterations = 0
+
         while True:
             newJ = self.__DefActiveSet()
 
@@ -106,7 +119,7 @@ class Primal:
                 return
 
             self.__BuildRSP()
-
+            
             simplexRSP = simplex.Simplex(self.__rspA, self.__rspb, self.__rspZ)
             optimal, zOptimal = simplexRSP.Solver()
 
@@ -115,9 +128,10 @@ class Primal:
             if multiplier != np.inf:
                 self.__y = self.__y + multiplier * np.array(simplexRSP.dualSol[:self.__rows])
 
+
             optimalFound = True
             for i in range(len(self.__J), self.__rspColumns):
-                if optimal[i] != 0:
+                if optimal[i] > 1e-5 or optimal[i] < -1e-5:
                     optimalFound = False
                     break
 
@@ -126,67 +140,110 @@ class Primal:
                 for j in range (len(self.__J)):
                     xb[self.__J[j]] = optimal[j]
                 optimalZ = sum([self.__Z[j] * xb[j] for j in range(self.__columns)])
-                return np.array(xb), optimalZ
             
+                return np.array(xb), optimalZ
+
+            if iterations % 1000 == 0:
+                print (multiplier)
+
+            iterations += 1
+            
+
+
+def readInstance(dir):
+    edges = []
+    vertexNum = 0
+    edgesNum = 0
+    bestSol = 0
+
+    with open(dir, 'r') as f:
+        for line in f:
+            line = line.strip()
+            
+            if not line:
+                continue
+                
+            lineVal = line.split()
+            
+            # Descricao
+            if lineVal[0] == 'p':
+                vertexNum = int(lineVal[2])
+                edgesNum = int(lineVal[3])
+                
+            # Aresta
+            elif lineVal[0] == 'e':
+                u = int(lineVal[1])
+                v = int(lineVal[2])
+                c = int(lineVal[3])
+                edges.append((u, v, c))
+
+            # Melhor solucao
+            elif lineVal[0] == 's':
+                bestSol = int(lineVal[1])
+
+    return vertexNum, edgesNum, edges, bestSol
+
+
+def InitPL (vertexNum, edgesNum, edges):
+    
+    # Nro de vertices, Nro de arestas, Nro de folgas
+    variablesNum = (vertexNum + (edgesNum) + (edgesNum * 2))
+    Z = [0] * variablesNum
+
+    A = []
+    edgeCurrent = vertexNum
+    excessNum = vertexNum + edgesNum
+    for i in edges:
+        restriction1 = [0] * variablesNum # Du - Dv
+        restriction2 = [0] * variablesNum # Dv - Du
+
+        restriction1[edgeCurrent] = 1
+        restriction2[edgeCurrent] = 1
+
+        restriction1[i[0] - 1] = -1
+        restriction1[i[1] - 1] = 1
+
+        restriction2[i[0] - 1] = 1
+        restriction2[i[1] - 1] = -1
+
+        restriction1[excessNum] = -1
+        restriction2[excessNum + 1] = -1
+
+        excessNum += 2
+
+        Z[edgeCurrent] = i[2]
+        edgeCurrent += 1
+
+        A.append(restriction1)
+        A.append(restriction2)
+
+    restrictionS = [0] * variablesNum # Xs = 0
+    restrictionT = [0] * variablesNum # Xt = 0
+
+    restrictionS[0] = 1
+    restrictionT[vertexNum - 1] = 1
+
+    A.append(restrictionS)
+    A.append(restrictionT)
+
+    b = [0] * ( (edgesNum * 2) + 2) # Restricoes das arestas + 2 restricoes Xs e Xt
+    b[(edgesNum * 2) + 1] = 1
+
+    return A, b, Z
+
 
 if __name__ == "__main__":
 
-    ''' 4 vertices, 5 arestas
-    A = [
-    # Aresta (s, a)
-    [-1,  1,  0,  0,  1,  0,  0,  0,  0, -1,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-    [ 1, -1,  0,  0,  1,  0,  0,  0,  0,  0, -1,  0,  0,  0,  0,  0,  0,  0,  0],
+    vertexNum, edgesNum, edges, bestSol = readInstance("instances/a.in")
 
-    # Aresta (s, b)
-    [-1,  0,  1,  0,  0,  1,  0,  0,  0,  0,  0, -1,  0,  0,  0,  0,  0,  0,  0],
-    [ 1,  0, -1,  0,  0,  1,  0,  0,  0,  0,  0,  0, -1,  0,  0,  0,  0,  0,  0],
+    print (f"Vértices: {vertexNum}")
+    print (f"Arestas: {edgesNum}")
 
-    # Aresta (a, b)
-    [ 0, -1,  1,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0, -1,  0,  0,  0,  0,  0],
-    [ 0,  1, -1,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0, -1,  0,  0,  0,  0],
-
-    # Aresta (a, t)
-    [ 0, -1,  0,  1,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0, -1,  0,  0,  0],
-    [ 0,  1,  0, -1,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0, -1,  0,  0],
-
-    # Aresta (b, t)
-    [ 0,  0, -1,  1,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0, -1,  0],
-    [ 0,  0,  1, -1,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0, -1],
-
-    # xs = 0
-    [ 1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-
-    # xt = 1
-    [ 0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0]
-    ]
-
-    b = [
-        0, 0,   # (s,a)
-        0, 0,   # (s,b)
-        0, 0,   # (a,b)
-        0, 0,   # (a,t)
-        0, 0,   # (b,t)
-        0,       # xs = 0
-        1        # xt = 1
-    ]
-
-    Z = [
-        0, 0, 0, 0,     # xs, xa, xb, xt
-        3, 4, 2, 5, 3,  # ysa, ysb, yab, yat, ybt
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0  # folgas
-    ]
-    '''
-
-    ''' 3 vertices 3 arestas
-    A = [
-        [1, 2, -1, 0],
-        [2, 1, 0, -1]
-    ]
-    b = [2, 2]
-    Z = [1, 3, 0, 0]
-    '''
-
+    A, b, Z = InitPL(vertexNum, edgesNum, edges)
+    
     primal = Primal(A, b, Z)
     optimal, optimalZ = primal.Solver()
-    print(optimal, optimalZ)
 
+    print (f"Arestas: {optimal}")
+    print (f"Corte otimo: {optimalZ}")
+    print (bestSol)
