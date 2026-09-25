@@ -46,8 +46,7 @@ class Simplex:
     def __FindDualSol(self, c):
         B = self.__A[:, self.__Bvars]
         Cb = self.__Z[self.__Bvars]
-        Binv = np.linalg.inv(B)
-        self.__dualSol = Cb @ Binv
+        self.__dualSol = np.linalg.solve(B.T, Cb)
         return
 
 
@@ -57,7 +56,7 @@ class Simplex:
         
         optimalFound = False
         # Verifica se atingiu o estado otimo
-        if c[pivotColumn] >= -1e-6:
+        if c[pivotColumn] >= -1e-4:
             self.__FindDualSol(c)
             optimalFound = True
 
@@ -70,7 +69,7 @@ class Simplex:
         pivotRow = -1
         for i in range (self.__rows):
 
-            if self.__tableau[i][pivotColumn] <= 1e-6:
+            if self.__tableau[i][pivotColumn] <= 1e-4:
                 continue
             
             minTest = self.__tableau[i][self.__columns] / self.__tableau[i][pivotColumn]

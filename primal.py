@@ -39,13 +39,17 @@ class Primal:
         return self.__status
 
     def __Setup (self):
-        # Inicializando a base
+        # Inicializando o problema Dual
 
         self.__dualA = np.transpose(self.__A)
         self.__dualb = [i for i in self.__Z]
         self.__dualZ = [i for i in self.__b]
 
         self.__y = [0 for i in self.__b]
+
+        # Interferencia para tentar impedir degeneracao
+        # for i in range (self.__rows):
+        #     self.__b[i] += 1e-6
 
         return
 
@@ -57,7 +61,8 @@ class Primal:
         self.__J = []
 
         for j in range (self.__columns):
-            if self.__Z[j] - (np.array(self.__y)) @ [self.__A[i][j] for i in range(self.__rows)] <= 1e-8:
+            cost = self.__Z[j] - (np.array(self.__y)) @ [self.__A[i][j] for i in range(self.__rows)]
+            if cost <= 1e-4:
                 self.__J.append(j)
 
         return not oldJ == self.__J
@@ -96,10 +101,10 @@ class Primal:
             mulNum = (self.__Z[j] - ( self.__y @ np.array(Aj)))
             mulDen = (simplexRSP.dualSol[:self.__rows]) @ np.array(Aj)
 
-            if mulNum < 1e-8:
+            if mulNum < 1e-4:
                 continue
 
-            if mulDen > 1e-5 and mulNum / mulDen < minMultiplier:
+            if mulDen > 1e-4 and mulNum / mulDen < minMultiplier:
                 minMultiplier = mulNum / mulDen
 
         return minMultiplier
@@ -109,7 +114,7 @@ class Primal:
         
         self.__Setup()
 
-        iterations = 0
+        iterations = 1
 
         while True:
             newJ = self.__DefActiveSet()
@@ -126,12 +131,13 @@ class Primal:
             multiplier = self.__FindMultiplier(simplexRSP)
 
             if multiplier != np.inf:
+                if iterations % 100 == 0:
+                    multiplier = 1.5
                 self.__y = self.__y + multiplier * np.array(simplexRSP.dualSol[:self.__rows])
-
 
             optimalFound = True
             for i in range(len(self.__J), self.__rspColumns):
-                if optimal[i] > 1e-5 or optimal[i] < -1e-5:
+                if optimal[i] > 1e-5 or optimal[i] < -1e-4:
                     optimalFound = False
                     break
 
@@ -143,107 +149,4 @@ class Primal:
             
                 return np.array(xb), optimalZ
 
-            if iterations % 1000 == 0:
-                print (multiplier)
-
             iterations += 1
-            
-
-
-def readInstance(dir):
-    edges = []
-    vertexNum = 0
-    edgesNum = 0
-    bestSol = 0
-
-    with open(dir, 'r') as f:
-        for line in f:
-            line = line.strip()
-            
-            if not line:
-                continue
-                
-            lineVal = line.split()
-            
-            # Descricao
-            if lineVal[0] == 'p':
-                vertexNum = int(lineVal[2])
-                edgesNum = int(lineVal[3])
-                
-            # Aresta
-            elif lineVal[0] == 'e':
-                u = int(lineVal[1])
-                v = int(lineVal[2])
-                c = int(lineVal[3])
-                edges.append((u, v, c))
-
-            # Melhor solucao
-            elif lineVal[0] == 's':
-                bestSol = int(lineVal[1])
-
-    return vertexNum, edgesNum, edges, bestSol
-
-
-def InitPL (vertexNum, edgesNum, edges):
-    
-    # Nro de vertices, Nro de arestas, Nro de folgas
-    variablesNum = (vertexNum + (edgesNum) + (edgesNum * 2))
-    Z = [0] * variablesNum
-
-    A = []
-    edgeCurrent = vertexNum
-    excessNum = vertexNum + edgesNum
-    for i in edges:
-        restriction1 = [0] * variablesNum # Du - Dv
-        restriction2 = [0] * variablesNum # Dv - Du
-
-        restriction1[edgeCurrent] = 1
-        restriction2[edgeCurrent] = 1
-
-        restriction1[i[0] - 1] = -1
-        restriction1[i[1] - 1] = 1
-
-        restriction2[i[0] - 1] = 1
-        restriction2[i[1] - 1] = -1
-
-        restriction1[excessNum] = -1
-        restriction2[excessNum + 1] = -1
-
-        excessNum += 2
-
-        Z[edgeCurrent] = i[2]
-        edgeCurrent += 1
-
-        A.append(restriction1)
-        A.append(restriction2)
-
-    restrictionS = [0] * variablesNum # Xs = 0
-    restrictionT = [0] * variablesNum # Xt = 0
-
-    restrictionS[0] = 1
-    restrictionT[vertexNum - 1] = 1
-
-    A.append(restrictionS)
-    A.append(restrictionT)
-
-    b = [0] * ( (edgesNum * 2) + 2) # Restricoes das arestas + 2 restricoes Xs e Xt
-    b[(edgesNum * 2) + 1] = 1
-
-    return A, b, Z
-
-
-if __name__ == "__main__":
-
-    vertexNum, edgesNum, edges, bestSol = readInstance("instances/a.in")
-
-    print (f"Vértices: {vertexNum}")
-    print (f"Arestas: {edgesNum}")
-
-    A, b, Z = InitPL(vertexNum, edgesNum, edges)
-    
-    primal = Primal(A, b, Z)
-    optimal, optimalZ = primal.Solver()
-
-    print (f"Arestas: {optimal}")
-    print (f"Corte otimo: {optimalZ}")
-    print (bestSol)
