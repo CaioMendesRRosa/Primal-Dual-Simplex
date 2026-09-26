@@ -142,7 +142,7 @@ class InstanceData:
             restriction1 = [0] * variablesNum
             edgeCurrentRestriction = edgeCurrent * self.commoditiesNum * 2
 
-            if edge[1] not in self.destiny:
+            if edge[1] not in self.destiny and edge[0] not in self.origin:
                 for j in range(self.commoditiesNum):
                     restriction1[edgeCurrentRestriction + j] = 1
                     restriction1[edgeCurrentRestriction + self.commoditiesNum + j] = 1
@@ -150,8 +150,12 @@ class InstanceData:
                 for j in range(self.commoditiesNum):
                     restriction1[edgeCurrentRestriction + j] = 1
                     restriction1[edgeCurrentRestriction + self.commoditiesNum + j] = 1
+                    
                     if self.destiny[j] == edge[1]:
                         Z[edgeCurrentRestriction + j] = -(j + 1)
+                    elif self.destiny[j] == edge[0]:
+                        Z[edgeCurrentRestriction + j + self.commoditiesNum] = -(j + 1)
+
 
             restriction1[slackNum] = 1
             b[bIndex] = edge[2]
@@ -166,13 +170,19 @@ class InstanceData:
             for k in range (self.vertexNum):
                 if k + 1 == self.origin[i] or k + 1 == self.destiny[i]:
                     continue
+
                 restriction = [0] * variablesNum
                 for j in range(self.edgesNum):
-                    if self.edges[j][0] != k + 1 and self.edges[j][1] != k + 1:
-                        continue
                     edgeCurrent = j * (self.commoditiesNum * 2) + i
-                    restriction[edgeCurrent] = 1
-                    restriction[edgeCurrent + self.commoditiesNum] = -1
+
+                    if self.edges[j][0] == k + 1:
+                        restriction[edgeCurrent] = 1
+                        restriction[edgeCurrent + self.commoditiesNum] = -1
+
+                    if self.edges[j][1] == k + 1:
+                        restriction[edgeCurrent] = -1
+                        restriction[edgeCurrent + self.commoditiesNum] = 1
+
                 A.append(restriction)
 
         return A, b, Z

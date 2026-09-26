@@ -7,7 +7,7 @@ from pulpSolver import *
 if __name__ == "__main__":
 
     instanceData = InstanceData()
-    instanceData.readInstance("instances/instance1.min")
+    instanceData.readInstance("instances/instance3.min")
 
     print ("Problema de Corte Minimo" if instanceData.problemType == "min" else "Problema de Multiplas Mercadorias")
     print (f"Vértices: {instanceData.vertexNum}")

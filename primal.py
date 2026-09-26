@@ -45,11 +45,11 @@ class Primal:
         self.__dualb = [i for i in self.__Z]
         self.__dualZ = [i for i in self.__b]
 
-        self.__y = [-1 for i in self.__b]
+        self.__y = [-1000 for i in self.__b]
 
         # Interferencia para tentar impedir degeneracao
-        # for i in range (self.__rows):
-        #     self.__b[i] += 1e-6
+        #for i in range (self.__rows):
+        #    self.__b[i] += 1e-6
 
         return
 
@@ -131,7 +131,7 @@ class Primal:
             multiplier = self.__FindMultiplier(simplexRSP)
 
             if multiplier != np.inf:
-                if iterations % 100 == 0:
+                if iterations % 20 == 0:
                     multiplier = 1.5
                 self.__y = self.__y + multiplier * np.array(simplexRSP.dualSol[:self.__rows])
 
