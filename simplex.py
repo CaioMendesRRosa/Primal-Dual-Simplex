@@ -3,8 +3,6 @@ from scipy import optimize
 
 '''
 Algoritmo simplex que utiliza o tableau
-
-PROVAVELMENTE ERRADO NO MOMENTO
 '''
 
 

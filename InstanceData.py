@@ -62,12 +62,18 @@ class InstanceData:
 
 
     def InitPL (self):
+
         if self.problemType == "min":
             A, b, Z = self.InitPLMinCut()
-        else:
-            A, b, Z = self.InitPLMaxCut()
+            return A, b, Z
 
-        return A, b, Z
+        if self.problemType == "mcf":
+            A, b, Z = self.InitPLMaxCut()
+            return A, b, Z
+
+        print ("Problema nao definido")
+        return None
+
 
 
     def InitPLMinCut (self):
@@ -144,7 +150,8 @@ class InstanceData:
                 for j in range(self.commoditiesNum):
                     restriction1[edgeCurrentRestriction + j] = 1
                     restriction1[edgeCurrentRestriction + self.commoditiesNum + j] = 1
-                Z[edgeCurrentRestriction + self.destiny.index(edge[1])] = self.destiny.index(edge[1]) + 1
+                    if self.destiny[j] == edge[1]:
+                        Z[edgeCurrentRestriction + j] = -(j + 1)
 
             restriction1[slackNum] = 1
             b[bIndex] = edge[2]
@@ -165,7 +172,7 @@ class InstanceData:
                         continue
                     edgeCurrent = j * (self.commoditiesNum * 2) + i
                     restriction[edgeCurrent] = 1
-                    restriction[edgeCurrent + self.commoditiesNum] = 1
+                    restriction[edgeCurrent + self.commoditiesNum] = -1
                 A.append(restriction)
 
         return A, b, Z
