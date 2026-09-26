@@ -68,7 +68,7 @@ class InstanceData:
             return A, b, Z
 
         if self.problemType == "mcf":
-            A, b, Z = self.InitPLMaxCut()
+            A, b, Z = self.InitPLMaxFlow()
             return A, b, Z
 
         print ("Problema nao definido")
@@ -124,7 +124,7 @@ class InstanceData:
         return A, b, Z
 
 
-    def InitPLMaxCut (self):
+    def InitPLMaxFlow (self):
         
         # Nro de Commodities * (Nro de arestas * 2 ) + Nro de folgas ( Nro de arestas )
         variablesNum = self.commoditiesNum * (self.edgesNum * 2) + self.edgesNum 
