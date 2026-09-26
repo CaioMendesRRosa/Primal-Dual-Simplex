@@ -45,7 +45,7 @@ class Primal:
         self.__dualb = [i for i in self.__Z]
         self.__dualZ = [i for i in self.__b]
 
-        self.__y = [0 for i in self.__b]
+        self.__y = [-1 for i in self.__b]
 
         # Interferencia para tentar impedir degeneracao
         # for i in range (self.__rows):
