@@ -131,7 +131,7 @@ class Primal:
             multiplier = self.__FindMultiplier(simplexRSP)
 
             if multiplier != np.inf:
-                if iterations % 20 == 0:
+                if iterations % 70 == 0:
                     multiplier = 1.5
                 self.__y = self.__y + multiplier * np.array(simplexRSP.dualSol[:self.__rows])
 

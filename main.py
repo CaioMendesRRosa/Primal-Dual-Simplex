@@ -3,15 +3,22 @@ from scipy import optimize
 from primal import Primal
 from InstanceData import InstanceData
 from pulpSolver import *
+from stoerWagner import StoerWagner
 
 if __name__ == "__main__":
 
     instanceData = InstanceData()
-    instanceData.readInstance("instances/instance3.min")
+    instanceData.readInstance("instances/instance1.min")
 
     print ("Problema de Corte Minimo" if instanceData.problemType == "min" else "Problema de Multiplas Mercadorias")
     print (f"Vértices: {instanceData.vertexNum}")
     print (f"Arestas: {instanceData.edgesNum}")
+
+    if instanceData.problemType == "min":
+        stoerWagner = StoerWagner(instanceData.edges, instanceData.vertexNum, 1, instanceData.vertexNum)
+        minCut = stoerWagner.Solver()
+        print("\n-----Solucao Stoer-Wagner-----")
+        print (f"Corte otimo: {minCut}")
 
     A, b, Z = instanceData.InitPL()
 
