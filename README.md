@@ -1,6 +1,6 @@
 # Primal-Dual Simplex & Otimização em Redes
 
-Este repositório contém o projeto **Primal-Dual-Simplex**, clonado a partir de [CaioMendesRRosa/Primal-Dual-Simplex](https://github.com/CaioMendesRRosa/Primal-Dual-Simplex).
+Este repositório contém o projeto **Primal-Dual-Simplex**.
 
 O README completo com formulações matemáticas, detalhes dos algoritmos e instruções de execução está disponível em:
 **[`Primal-Dual-Simplex/README.md`](file:///c:/Users/Estagi%C3%A1rios/Documents/Trabalho1%20-%20Savio/Primal-Dual-Simplex/README.md)**
