@@ -1,5 +1,4 @@
 import numpy as np
-from scipy import optimize
 
 '''
 Algoritmo simplex que utiliza o tableau
@@ -106,7 +105,7 @@ class Simplex:
             optimal, pivotColumn = self.__FindPivotColumn(c)
 
             if optimal:
-                self.__status = f"Optimal Found in {iterations} iterations"
+                self.__status = f"Solucao otima encontrada em {iterations} iteracoes"
 
                 # Encontra os valore otimos (coluna mais a direita)
                 optimalValues = np.zeros(self.__columns)
@@ -121,7 +120,7 @@ class Simplex:
 
             # Verificando se o problema tem solucao infinita
             if pivotRow == -1:
-                self.__status = "Problem has infinite solution"
+                self.__status = "O problema tem solucao ilimitada"
                 return None, None
 
             # Redefinindo o tableau
@@ -151,13 +150,6 @@ if __name__ == "__main__":
         ]
     b = [5, 7, 7]
     Z = [-30, -40, 0, 0, 0]
-
-    res = optimize.linprog(Z, A_eq=A, b_eq=b, method="highs")
-
-    # Exibindo os resultados
-    print("Solucao Scipy")
-    print(f"Valor otimo da funcao objetivo (Z): {res.fun}")
-    print(f"Solucao otima: {res.x}\n")
 
     simplex = Simplex(A, b, Z)
     optimal, zOptimal = simplex.Solver()

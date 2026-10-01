@@ -1,7 +1,6 @@
 import numpy as np
 from scipy import optimize
 import simplex
-import simplexInv
 
 '''
 Algoritmo primal-dual
@@ -45,7 +44,7 @@ class Primal:
         self.__dualb = [i for i in self.__Z]
         self.__dualZ = [i for i in self.__b]
 
-        self.__y = [-1000 for i in self.__b]
+        self.__y = [0 for i in self.__b]
 
         # Interferencia para tentar impedir degeneracao
         #for i in range (self.__rows):
@@ -98,8 +97,8 @@ class Primal:
                 continue
             
             Aj = [self.__A[i][j] for i in range(self.__rows)]
-            mulNum = (self.__Z[j] - ( self.__y @ np.array(Aj)))
-            mulDen = (simplexRSP.dualSol[:self.__rows]) @ np.array(Aj)
+            mulNum = self.__Z[j] - (self.__y @ np.array(Aj)) 
+            mulDen = simplexRSP.dualSol[:self.__rows] @ np.array(Aj)
 
             if mulNum < 1e-4:
                 continue
@@ -120,7 +119,7 @@ class Primal:
             newJ = self.__DefActiveSet()
 
             if newJ == False:
-                print ("eita")
+                self.__status = "O problema tem solucao ilimitada"
                 return
 
             self.__BuildRSP()
@@ -131,8 +130,10 @@ class Primal:
             multiplier = self.__FindMultiplier(simplexRSP)
 
             if multiplier != np.inf:
-                if iterations % 70 == 0:
-                    multiplier = 1.5
+                # Resetando o multiplicador
+                # ATENCAO: faz o algoritmo converger errado em alguns casos
+                # if multiplier <= 0.01:
+                #     multiplier = 2.0
                 self.__y = self.__y + multiplier * np.array(simplexRSP.dualSol[:self.__rows])
 
             optimalFound = True
@@ -146,6 +147,8 @@ class Primal:
                 for j in range (len(self.__J)):
                     xb[self.__J[j]] = optimal[j]
                 optimalZ = sum([self.__Z[j] * xb[j] for j in range(self.__columns)])
+
+                self.__status = f"Solucao otima encontrada em {iterations} iteracoes"
             
                 return np.array(xb), optimalZ
 

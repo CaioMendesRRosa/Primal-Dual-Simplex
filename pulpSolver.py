@@ -85,10 +85,13 @@ def buildModelPulpMaxFlow(instanceData):
             for i in range (instanceData.edgesNum):
 
                 currentEdge = i * 2 * instanceData.commoditiesNum + j
+
+                if k + 1 == instanceData.edges[i][0] and instanceData.edges[i][0] == instanceData.edges[i][1]:
+                    continue
                 
                 if k + 1 == instanceData.edges[i][0]:
                     commoditySum += f[currentEdge] - f[currentEdge + instanceData.commoditiesNum]
-                elif k + 1 == instanceData.edges[i][1]:
+                if k + 1 == instanceData.edges[i][1]:
                     commoditySum += -f[currentEdge] + f[currentEdge + instanceData.commoditiesNum]
 
             prob += commoditySum == 0

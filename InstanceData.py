@@ -41,6 +41,8 @@ class InstanceData:
                     u = int(lineVal[1])
                     v = int(lineVal[2])
                     c = int(lineVal[3])
+                    if (u == v):
+                        print(u)
                     self.edges.append((u, v, c))
 
                 # Melhor solucao
@@ -139,7 +141,8 @@ class InstanceData:
         slackNum = self.commoditiesNum * (self.edgesNum * 2)
 
         for edge in self.edges:
-            restriction1 = [0] * variablesNum
+            restriction1 = [0] * variablesNum # fi(u, v) <= c(u, v)
+
             edgeCurrentRestriction = edgeCurrent * self.commoditiesNum * 2
 
             if edge[1] not in self.destiny and edge[0] not in self.origin:
@@ -151,6 +154,7 @@ class InstanceData:
                     restriction1[edgeCurrentRestriction + j] = 1
                     restriction1[edgeCurrentRestriction + self.commoditiesNum + j] = 1
                     
+                    # Adicionando o coeficiente na F0 se a aresta conecta ao sumidouro da commodity j
                     if self.destiny[j] == edge[1]:
                         Z[edgeCurrentRestriction + j] = -(j + 1)
                     elif self.destiny[j] == edge[0]:
@@ -170,10 +174,14 @@ class InstanceData:
             for k in range (self.vertexNum):
                 if k + 1 == self.origin[i] or k + 1 == self.destiny[i]:
                     continue
-
+                    
+                # Sum(fi (u, v)) - Sum(fi(v, u)) = 0 para todo vertice tirando a fonte e o sumidouro
                 restriction = [0] * variablesNum
                 for j in range(self.edgesNum):
                     edgeCurrent = j * (self.commoditiesNum * 2) + i
+
+                    if (self.edges[j][0] == self.edges[j][1] and self.edges[j][0] == k + 1):
+                        continue
 
                     if self.edges[j][0] == k + 1:
                         restriction[edgeCurrent] = 1

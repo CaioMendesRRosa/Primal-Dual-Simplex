@@ -5,10 +5,15 @@ from InstanceData import InstanceData
 from pulpSolver import *
 from stoerWagner import StoerWagner
 
+
 if __name__ == "__main__":
 
+    # Altere as instancias aqui
+    dir = "instances/instance2.min"
+
+    # Classe com as informacoes do problema (Qnt de vertices, arestas, etc)
     instanceData = InstanceData()
-    instanceData.readInstance("instances/instance1.min")
+    instanceData.readInstance(dir)
 
     print ("Problema de Corte Minimo" if instanceData.problemType == "min" else "Problema de Multiplas Mercadorias")
     print (f"Vértices: {instanceData.vertexNum}")
@@ -20,12 +25,15 @@ if __name__ == "__main__":
         print("\n-----Solucao Stoer-Wagner-----")
         print (f"Corte otimo: {minCut}")
 
+    # Incializando o problema de programacao linear
     A, b, Z = instanceData.InitPL()
 
+    # Resolvendo com o primal-dual simplex
     primal = Primal(A, b, Z)
     optimal, optimalZ = primal.Solver()
 
     print ("\n-----Solucao Primal-Dual Simplex-----")
+    print (primal.status)
     if instanceData.problemType == "min":
         optimalEdges = []
         for i in range(instanceData.vertexNum, instanceData.vertexNum + instanceData.edgesNum):
@@ -35,19 +43,21 @@ if __name__ == "__main__":
         print (f"Arestas: {optimalEdges}")
     print (f"Solucao otima: {optimalZ}")
 
+    # Resolvendo com o pulp
     prob, optimalEdges = buildModelPulp(instanceData)
 
-    prob.solve(pulp.PULP_CBC_CMD(msg=False))
+    prob.solve(pulp.PULP_CBC_CMD(msg=False)) # Coloque True para imprimir as iteracoes do Pulp
 
     # Resultados do pulp
     print("\n-----Solucao Pulp-----")
     print(f"Status: {pulp.LpStatus[prob.status]}")
     print(f"Valor otimo: {pulp.value(prob.objective)}")
 
-    selectedEdges = []
-    for i in range(instanceData.edgesNum):
-        if pulp.value(optimalEdges[i]) > 0.5:
-            selectedEdges.append(instanceData.edges[i])
+    if instanceData.problemType == "min":
+        selectedEdges = []
+        for i in range(instanceData.edgesNum):
+            if pulp.value(optimalEdges[i]) > 0.5:
+                selectedEdges.append(instanceData.edges[i])
             
-    print (f"Arestas selecionadas: {selectedEdges}")
+        print (f"Arestas selecionadas: {selectedEdges}")
 

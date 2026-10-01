@@ -19,7 +19,7 @@ class StoerWagner:
         # Matriz de Adjacencia do grafo
         self.__adjMat = np.array([[0] * vertexNum for i in range(vertexNum)])
 
-        self.__minCut = np.inf # Menor corte encontrado em cada iteracao
+        self.__minCut = np.inf # Menor corte encontrado
 
         self.__inactiveVertex = [] # Lista com vertices que se juntaram a t (sumidouro)
         self.__activeVertex = vertexNum # Quantidade de vertices ativos
@@ -71,6 +71,7 @@ class StoerWagner:
 
         return
 
+
     def __MinCutPhase(self):
         
         self.__d = [self.__s] # Vertices que foram fundidos no mesmo grupo de s(fonte)
@@ -79,7 +80,6 @@ class StoerWagner:
         costVertex = np.array(self.__adjMat[self.__s - 1]) # Peso das arestas do grupo de s(fonte)
 
         cut = 0 # Corte da ultima iteracao
-        mergeVertex = 0 # Ultimo vertice a ser inserido em d
 
         while dVertexCount < self.__activeVertex - 1:
 
