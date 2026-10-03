@@ -1,6 +1,6 @@
 import numpy as np
-from scipy import optimize
 import simplex
+import time
 
 '''
 Algoritmo primal-dual
@@ -32,17 +32,22 @@ class Primal:
         self.__columns = len(self.__A[0])
 
         self.__status = ""
+        self.__executionTime = 0
 
     @property
     def status (self):
         return self.__status
 
+    @property
+    def executionTime (self):
+        return self.__executionTime
+
     def __Setup (self):
         # Inicializando o problema Dual
 
-        self.__A = np.asarray(self.__A, dtype=float)
-        self.__b = np.asarray(self.__b, dtype=float)
-        self.__Z = np.asarray(self.__Z, dtype=float)
+        self.__A = np.array(self.__A, dtype=float)
+        self.__b = np.array(self.__b, dtype=float)
+        self.__Z = np.array(self.__Z, dtype=float)
 
         self.__dualA = np.transpose(self.__A)
         self.__dualb = self.__Z.copy()
@@ -54,7 +59,7 @@ class Primal:
 
         # Interferencia para tentar impedir degeneracao
         #for i in range (self.__rows):
-        #    self.__b[i] += 1e-2
+        #    self.__b[i] += 1e-5
 
         return
 
@@ -121,6 +126,7 @@ class Primal:
         self.__Setup()
 
         iterations = 1
+        timeBegin = time.perf_counter()
 
         while True:
             newJ = self.__DefActiveSet()
@@ -156,6 +162,7 @@ class Primal:
                 optimalZ = self.__Z @ xb
 
                 self.__status = f"Solucao otima encontrada em {iterations} iteracoes"
+                self.__executionTime = time.perf_counter() - timeBegin
             
                 return np.array(xb), optimalZ
 

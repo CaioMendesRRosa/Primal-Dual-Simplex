@@ -1,15 +1,15 @@
 import numpy as np
-from scipy import optimize
 from primal import Primal
 from InstanceData import InstanceData
 from pulpSolver import *
 from stoerWagner import StoerWagner
+import time
 
 
 if __name__ == "__main__":
 
     # Altere as instancias aqui
-    dir = "instances/mc_instance3.max"
+    dir = "instances/mc_instance1.max"
 
     # Classe com as informacoes do problema (Qnt de vertices, arestas, etc)
     instanceData = InstanceData()
@@ -23,6 +23,7 @@ if __name__ == "__main__":
         stoerWagner = StoerWagner(instanceData.edges, instanceData.vertexNum, 1, instanceData.vertexNum)
         minCut = stoerWagner.Solver()
         print("\n-----Solucao Stoer-Wagner-----")
+        print (f"Tempo de Execucao: {stoerWagner.executionTime:.3f}s")
         print (f"Corte otimo: {minCut}")
 
     # Incializando o problema de programacao linear
@@ -34,6 +35,8 @@ if __name__ == "__main__":
 
     print ("\n-----Solucao Primal-Dual Simplex-----")
     print (primal.status)
+    print (f"Tempo de Execucao: {primal.executionTime:.3f}s")
+
     if instanceData.problemType == "min":
         optimalEdges = []
         for i in range(instanceData.vertexNum, instanceData.vertexNum + instanceData.edgesNum):
@@ -41,7 +44,7 @@ if __name__ == "__main__":
                 optimalEdges.append(instanceData.edges[i - instanceData.vertexNum])
 
         print (f"Arestas: {optimalEdges}")
-    print (f"Solucao otima: {optimalZ}")
+    print (f"Solucao otima: {optimalZ:.3f}\n")
 
     # Resolvendo com o pulp
     prob, optimalEdges = buildModelPulp(instanceData)

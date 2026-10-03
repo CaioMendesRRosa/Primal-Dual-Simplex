@@ -1,4 +1,5 @@
 import numpy as np
+import time
 
 '''
 Algoritmo de Corte mínimo Stoer-Wagner
@@ -24,6 +25,11 @@ class StoerWagner:
         self.__inactiveVertex = [] # Lista com vertices que se juntaram a t (sumidouro)
         self.__activeVertex = vertexNum # Quantidade de vertices ativos
 
+        self.__executionTime = 0
+
+    @property
+    def executionTime (self):
+        return self.__executionTime
 
     def __Setup(self):
 
@@ -102,8 +108,11 @@ class StoerWagner:
     def Solver(self):
         self.__Setup()
 
+        timeBegin = time.perf_counter()
+
         while self.__activeVertex > 1:
             minCutPhase = self.__MinCutPhase()
             self.__minCut = min(self.__minCut, minCutPhase)
 
+        self.__executionTime = time.perf_counter() - timeBegin
         return self.__minCut
