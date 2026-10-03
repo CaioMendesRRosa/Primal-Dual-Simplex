@@ -9,7 +9,7 @@ from stoerWagner import StoerWagner
 if __name__ == "__main__":
 
     # Altere as instancias aqui
-    dir = "instances/instance2.min"
+    dir = "instances/mc_instance3.max"
 
     # Classe com as informacoes do problema (Qnt de vertices, arestas, etc)
     instanceData = InstanceData()

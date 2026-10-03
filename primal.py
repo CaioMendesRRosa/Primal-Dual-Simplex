@@ -45,16 +45,16 @@ class Primal:
         self.__Z = np.asarray(self.__Z, dtype=float)
 
         self.__dualA = np.transpose(self.__A)
-        self.__dualb = [i for i in self.__Z]
-        self.__dualZ = [i for i in self.__b]
+        self.__dualb = self.__Z.copy()
+        self.__dualZ = self.__b
 
         # Comecando com uma solucao dual factivel
         minValue = np.min(self.__Z)
-        self.__y = [minValue for i in self.__b]
+        self.__y = [minValue] * self.__rows
 
         # Interferencia para tentar impedir degeneracao
         #for i in range (self.__rows):
-        #    self.__b[i] += 1e-6
+        #    self.__b[i] += 1e-2
 
         return
 
@@ -66,7 +66,7 @@ class Primal:
         self.__J = []
 
         for j in range (self.__columns):
-            cost = self.__Z[j] - (np.array(self.__y)) @ [self.__A[i][j] for i in range(self.__rows)]
+            cost = self.__Z[j] - np.array(self.__y) @ self.__A[:, j]
             if cost <= 1e-4:
                 self.__J.append(j)
 
@@ -80,14 +80,15 @@ class Primal:
         self.__rspColumns = len(self.__J) + self.__rows
         self.__rspRows = self.__rows
 
-        self.__rspZ = [0 for i in self.__J] + [1 for i in range(self.__rspRows)]
+        # 0 para variaveis de descisao e 1 para as variaveis de folga
+        self.__rspZ = [0] * len(self.__J) + [1] * self.__rows
         self.__rspb = self.__b
         self.__rspA = []
 
         for i in range (self.__rspRows):
-            lineI = [self.__A[i][j] for j in self.__J]
-            lineI += [0 for j in range(self.__rows)]
-            lineI[i + len(self.__J)] = 1
+            lineI = self.__A[i, self.__J] # Restricao de A apenas com as variaveis ativas
+            lineI = np.concatenate([lineI, np.zeros(self.__rows)]) # Variaveis de folga
+            lineI[i + len(self.__J)] = 1 # Variavel de folga ativa
             self.__rspA.append(lineI)
 
         return
@@ -102,9 +103,9 @@ class Primal:
             if j in self.__J:
                 continue
             
-            Aj = [self.__A[i][j] for i in range(self.__rows)]
-            mulNum = self.__Z[j] - (self.__y @ np.array(Aj)) 
-            mulDen = simplexRSP.dualSol[:self.__rows] @ np.array(Aj)
+            Aj = self.__A[:, j]
+            mulNum = self.__Z[j] - self.__y @ Aj
+            mulDen = simplexRSP.dualSol[:self.__rows] @ Aj
 
             if mulNum < 1e-4:
                 continue
@@ -149,10 +150,10 @@ class Primal:
                     break
 
             if optimalFound:
-                xb = [0 for i in range (self.__columns)]
+                xb = [0] * self.__columns
                 for j in range (len(self.__J)):
                     xb[self.__J[j]] = optimal[j]
-                optimalZ = sum([self.__Z[j] * xb[j] for j in range(self.__columns)])
+                optimalZ = self.__Z @ xb
 
                 self.__status = f"Solucao otima encontrada em {iterations} iteracoes"
             
