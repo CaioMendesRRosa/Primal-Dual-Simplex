@@ -41,8 +41,6 @@ class InstanceData:
                     u = int(lineVal[1])
                     v = int(lineVal[2])
                     c = int(lineVal[3])
-                    if (u == v):
-                        print(u)
                     self.edges.append((u, v, c))
 
                 # Melhor solucao
@@ -134,31 +132,45 @@ class InstanceData:
 
         A = []
 
-        b = [0] * ( self.edgesNum ) + [0] * ( self.commoditiesNum * (self.vertexNum - 2) )
+        b = [0] * ( self.edgesNum ) + [0] * ( self.commoditiesNum * (self.vertexNum - 2) ) + [0]
         bIndex = 0
 
         edgeCurrent = 0
         slackNum = self.commoditiesNum * (self.edgesNum * 2)
+
+        # Restricao que impede de sair mercadoria do destino e de entrar mercadoria na origem
+        restrictionOD = [0] * variablesNum
 
         for edge in self.edges:
             restriction1 = [0] * variablesNum # fi(u, v) <= c(u, v)
 
             edgeCurrentRestriction = edgeCurrent * self.commoditiesNum * 2
 
-            if edge[1] not in self.destiny and edge[0] not in self.origin:
-                for j in range(self.commoditiesNum):
-                    restriction1[edgeCurrentRestriction + j] = 1
-                    restriction1[edgeCurrentRestriction + self.commoditiesNum + j] = 1
-            else:
-                for j in range(self.commoditiesNum):
-                    restriction1[edgeCurrentRestriction + j] = 1
-                    restriction1[edgeCurrentRestriction + self.commoditiesNum + j] = 1
-                    
-                    # Adicionando o coeficiente na F0 se a aresta conecta ao sumidouro da commodity j
-                    if self.destiny[j] == edge[1]:
-                        Z[edgeCurrentRestriction + j] = -(j + 1)
-                    elif self.destiny[j] == edge[0]:
-                        Z[edgeCurrentRestriction + j + self.commoditiesNum] = -(j + 1)
+            for j in range(self.commoditiesNum):
+                forward = edgeCurrentRestriction + j
+                reverse = edgeCurrentRestriction + self.commoditiesNum + j
+                
+                restriction1[forward] = 1
+                restriction1[reverse] = 1
+
+                
+                if edge[1] == self.destiny[j]:
+                    restrictionOD[reverse] = 1
+                if edge[0] == self.destiny[j]:
+                    restrictionOD[forward] = 1
+
+                if edge[1] == self.origin[j]:
+                    restrictionOD[forward] = 1
+                if edge[0] == self.origin[j]:
+                    restrictionOD[reverse] = 1
+
+                # Maximiza o fluxo liquido que entra no sumidouro da commodity.
+                # Z e minimizado pelo simplex, por isso os coeficientes levam sinal negativo.
+                weight = j + 1
+                if self.destiny[j] == edge[1]:
+                    Z[forward] -= weight
+                if self.destiny[j] == edge[0]:
+                    Z[reverse] -= weight
 
 
             restriction1[slackNum] = 1
@@ -169,6 +181,8 @@ class InstanceData:
             edgeCurrent += 1
 
             A.append(restriction1)
+
+        A.append(restrictionOD)
 
         for i in range (self.commoditiesNum):
             for k in range (self.vertexNum):

@@ -40,11 +40,17 @@ class Primal:
     def __Setup (self):
         # Inicializando o problema Dual
 
+        self.__A = np.asarray(self.__A, dtype=float)
+        self.__b = np.asarray(self.__b, dtype=float)
+        self.__Z = np.asarray(self.__Z, dtype=float)
+
         self.__dualA = np.transpose(self.__A)
         self.__dualb = [i for i in self.__Z]
         self.__dualZ = [i for i in self.__b]
 
-        self.__y = [0 for i in self.__b]
+        # Comecando com uma solucao dual factivel
+        minValue = np.min(self.__Z)
+        self.__y = [minValue for i in self.__b]
 
         # Interferencia para tentar impedir degeneracao
         #for i in range (self.__rows):
@@ -132,8 +138,8 @@ class Primal:
             if multiplier != np.inf:
                 # Resetando o multiplicador
                 # ATENCAO: faz o algoritmo converger errado em alguns casos
-                # if multiplier <= 0.01:
-                #     multiplier = 2.0
+                #if multiplier <= 1e-5:
+                #    multiplier = 1.2
                 self.__y = self.__y + multiplier * np.array(simplexRSP.dualSol[:self.__rows])
 
             optimalFound = True

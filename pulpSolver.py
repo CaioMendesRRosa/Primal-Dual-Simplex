@@ -65,25 +65,34 @@ def buildModelPulpMaxFlow(instanceData):
     prob += fo
             
     for i in range (instanceData.edgesNum):
-
         commoditySum = 0
         for j in range(instanceData.commoditiesNum):
 
             currentEdge = i * 2 * instanceData.commoditiesNum + j
+
+            # O vertice destino nao pode sair mercadoria dele
+            if instanceData.destiny[j] == instanceData.edges[i][1]:
+                prob += f[currentEdge + instanceData.commoditiesNum] == 0
+            if instanceData.destiny[j] == instanceData.edges[i][0]:
+                prob += f[currentEdge] == 0
+            
+            # O vertice origem nao pode entrar mercadoria nele
+            if instanceData.origin[j] == instanceData.edges[i][1]:
+                prob += f[currentEdge] == 0
+            if instanceData.origin[j] == instanceData.edges[i][0]:
+                prob += f[currentEdge + instanceData.commoditiesNum] == 0
+            
             commoditySum += f[currentEdge] + f[currentEdge + instanceData.commoditiesNum]
 
         prob += commoditySum <= instanceData.edges[i][2]
 
     for j in range (instanceData.commoditiesNum):
-
         for k in range (instanceData.vertexNum):
-
             if k + 1 == instanceData.origin[j] or k + 1 == instanceData.destiny[j]:
                 continue
             
             commoditySum = 0
             for i in range (instanceData.edgesNum):
-
                 currentEdge = i * 2 * instanceData.commoditiesNum + j
 
                 if k + 1 == instanceData.edges[i][0] and instanceData.edges[i][0] == instanceData.edges[i][1]:
