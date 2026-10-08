@@ -6,6 +6,7 @@ import simplex
 Algoritmo primal-dual
 """
 
+EPSILON = 1e-4
 
 class Primal:
 
@@ -14,10 +15,7 @@ class Primal:
         self.__b = b
         self.__Z = Z
         self.__verbose = verbose
-
-        self.__dualA = None
-        self.__dualb = None
-        self.__dualZ = None
+        self.__preBvars = None
 
         self.__rspA = None
         self.__rspb = None
@@ -34,6 +32,11 @@ class Primal:
 
         self.__status = ""
         self.__executionTime = 0
+        
+        self.__artificialVarsSum = None
+        
+        self.__xb = None
+        self.__optimalZ = None
 
     @property
     def status(self):
@@ -48,10 +51,6 @@ class Primal:
         self.__b = np.array(self.__b, dtype=float)
         self.__Z = np.array(self.__Z, dtype=float)
 
-        self.__dualA = np.transpose(self.__A)
-        self.__dualb = self.__Z.copy()
-        self.__dualZ = self.__b
-
         minValue = np.min(self.__Z)
         self.__y = [minValue] * self.__rows
 
@@ -61,7 +60,7 @@ class Primal:
 
         for j in range(self.__columns):
             cost = self.__Z[j] - np.array(self.__y) @ self.__A[:, j]
-            if cost <= 1e-4:
+            if cost <= EPSILON:
                 self.__J.append(j)
 
         return not oldJ == self.__J
@@ -91,13 +90,58 @@ class Primal:
             mulNum = self.__Z[j] - self.__y @ Aj
             mulDen = simplexRSP.dualSol[: self.__rows] @ Aj
 
-            if mulNum < 1e-4:
+            if mulNum < EPSILON or mulDen < EPSILON:
                 continue
 
-            if mulDen > 1e-4 and mulNum / mulDen < minMultiplier:
+            if mulNum / mulDen < minMultiplier:
                 minMultiplier = mulNum / mulDen
 
         return minMultiplier
+
+
+    def __CheckOptimality (self, optimal):
+        
+        self.__artificialVarsSum = 0.0
+        for i in range(len(self.__J), self.__rspColumns):
+            self.__artificialVarsSum += abs(optimal[i])
+        optimalFound = self.__artificialVarsSum <= EPSILON
+
+        if optimalFound:
+            self.__xb = [0] * self.__columns
+            for j in range(len(self.__J)):
+                self.__xb[self.__J[j]] = optimal[j]
+            self.__optimalZ = self.__Z @ self.__xb
+
+            return True
+        
+        return False
+
+
+    def __SaveBvars(self, simplexRSP):
+        lenJ = len(self.__J)
+        # Guardando as variaveis da base anterior e classificando entre f e a
+        # a: artificial do RSP
+        # f: fluxo do problema original
+        self.__preBvars = [("f", self.__J[i]) if i < lenJ else ("a", i - lenJ) for i in simplexRSP.Bvars]
+
+    def __GetPrevBvars(self):
+        # Pegando a base anterior, levando em consideracao a mudanca da variavel self.__J atual
+        if self.__preBvars is None:
+            return None
+        posIndex = {j: p for p, j in enumerate(self.__J)}
+        lenJ = len(self.__J)
+        bVars = []
+        for varType, idx in self.__preBvars:
+            if varType == "f":
+                # Fluxo
+                if idx not in posIndex:
+                    return None
+                bVars.append(posIndex[idx])
+            else:
+                # Artificial do RSP
+                bVars.append(lenJ + idx)
+        return bVars
+
 
     def Solver(self):
         self.__Setup()
@@ -106,83 +150,39 @@ class Primal:
         timeBegin = time.perf_counter()
 
         if self.__verbose:
-            print(
-                f"  [Primal-Dual] Inicializado: {self.__rows} restrições, {self.__columns} variáveis."
-            )
+            print(f"  [Primal-Dual] Inicializado: {self.__rows} restrições, {self.__columns} variáveis.")
 
         while True:
-            newJ = self.__DefActiveSet()
-
-            if newJ == False:
-                self.__status = "O problema tem solucao ilimitada"
-                if self.__verbose:
-                    print(
-                        f"  [Primal-Dual] Conjunto ativo inalterado. Problema ilimitado."
-                    )
-                return None, None
-
-            if self.__verbose:
-                print(
-                    f"\n  [Primal-Dual It. {iterations}] Conjunto ativo |J| = {len(self.__J)} variáveis."
-                )
-
+            
+            self.__DefActiveSet()
             self.__BuildRSP()
 
-            if self.__verbose:
-                print(
-                    f"    -> Resolvendo RSP ({self.__rspRows} linhas x {self.__rspColumns} colunas)..."
-                )
-
-            simplexRSP = simplex.Simplex(
-                self.__rspA, self.__rspb, self.__rspZ, verbose=self.__verbose
-            )
+            simplexRSP = simplex.Simplex(self.__rspA, self.__rspb, self.__rspZ,
+                                         verbose=self.__verbose, initialBvars=self.__GetPrevBvars())
             optimal, zOptimal = simplexRSP.Solver()
 
             if optimal is None:
                 self.__status = "RSP ilimitado"
                 return None, None
 
-            multiplier = self.__FindMultiplier(simplexRSP)
-
-            if self.__verbose:
-                print(
-                    f"    -> RSP finalizado (FO = {zOptimal:.4f}). Multiplicador θ = {multiplier:.4e}"
-                )
-
-            if multiplier != np.inf:
-                self.__y = self.__y + multiplier * np.array(
-                    simplexRSP.dualSol[: self.__rows]
-                )
-
-            optimalFound = True
-            artificiais_soma = 0.0
-            for i in range(len(self.__J), self.__rspColumns):
-                artificiais_soma += abs(optimal[i])
-                if optimal[i] > 1e-5 or optimal[i] < -1e-4:
-                    optimalFound = False
-
-            if self.__verbose:
-                print(
-                    f"    -> Soma das variáveis artificiais: {artificiais_soma:.6f} "
-                    f"({'= 0 -> ÓTIMO ATINGIDO!' if optimalFound else '> 0 -> Próxima iteração'})"
-                )
+            optimalFound = self.__CheckOptimality(optimal)
 
             if optimalFound:
-                xb = [0] * self.__columns
-                for j in range(len(self.__J)):
-                    xb[self.__J[j]] = optimal[j]
-                optimalZ = self.__Z @ xb
-
-                self.__status = (
-                    f"Solucao otima encontrada em {iterations} iteracoes"
-                )
+                self.__status = f"Solucao otima encontrada em {iterations} iteracoes"
                 self.__executionTime = time.perf_counter() - timeBegin
+                return np.array(self.__xb), self.__optimalZ
 
-                if self.__verbose:
-                    print(
-                        f"  [Primal-Dual] Concluído em {iterations} iterações. Tempo: {self.__executionTime:.4f}s"
-                    )
+            multiplier = self.__FindMultiplier(simplexRSP)
 
-                return np.array(xb), optimalZ
+            if multiplier == np.inf:
+                self.__status = "O problema e inviavel (dual ilimitado)"
+                return None, None
 
+            self.__y += multiplier * np.array(simplexRSP.dualSol[: self.__rows])
+
+            if self.__verbose:
+                print(f"\n  [Primal-Dual It. {iterations}] |J| = {len(self.__J)}")
+                print(f"    -> RSP: FO = {zOptimal:.4f}, θ = {multiplier:.4e}, artificiais = {self.__artificialVarsSum:.6f}")
+
+            self.__SaveBvars(simplexRSP)
             iterations += 1

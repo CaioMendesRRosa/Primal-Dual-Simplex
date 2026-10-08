@@ -1,7 +1,6 @@
 from pathlib import Path
 import time
 from InstanceData import InstanceData
-import numpy as np
 from primal import Primal
 from pulpSolver import *
 from stoerWagner import StoerWagner
@@ -16,6 +15,7 @@ def escolher_modo(all_files):
     print("3 - Rodar apenas instâncias de Corte Mínimo (.min)")
     print("4 - Rodar apenas instâncias de Múltiplas Mercadorias (.max)")
     print("=" * 60)
+
 
     while True:
         opcao = input("Escolha uma opção (1-4): ").strip()
@@ -117,6 +117,8 @@ if __name__ == "__main__":
             print(
                 f"\n--- ETAPA {'3' if is_min else '2'}: Primal-Dual Simplex ---"
             )
+        
+            
         A, b, Z = instanceData.InitPL(verbose=verbose)
         primal = Primal(A, b, Z, verbose=verbose)
         optimal, optimalZ = primal.Solver()

@@ -4,14 +4,16 @@ import numpy as np
 Algoritmo simplex que utiliza o tableau
 """
 
+EPSILON = 1e-4
 
 class Simplex:
 
-    def __init__(self, A, b, Z, verbose=False):
+    def __init__(self, A, b, Z, verbose=False, initialBvars=None):
         self.__A = np.array(A, dtype=float)
         self.__b = np.array(b, dtype=float)
         self.__Z = np.array(Z, dtype=float)
         self.__verbose = verbose
+        self.__initialBvars = initialBvars
 
         self.__Bvars = []
         self.__dualSol = None
@@ -33,9 +35,14 @@ class Simplex:
         return self.__Bvars
 
     def __Setup(self):
-        self.__Bvars = [
-            self.__columns - self.__rows + i for i in range(self.__rows)
-        ]
+        if self.__initialBvars != None:
+            # Warm Start
+            B = self.__A[:, self.__initialBvars]
+            self.__Bvars = self.__initialBvars
+            self.__tableau = np.linalg.solve(B, np.hstack((self.__A, self.__b.reshape(-1, 1))))
+            return
+        
+        self.__Bvars = [ self.__columns - self.__rows + i for i in range(self.__rows)  ]
         self.__tableau = np.hstack(([self.__A, self.__b.reshape(-1, 1)]))
 
     def __FindDualSol(self, c):
@@ -46,7 +53,7 @@ class Simplex:
     def __FindPivotColumn(self, c):
         pivotColumn = np.argmin(c)
         optimalFound = False
-        if c[pivotColumn] >= -1e-4:
+        if c[pivotColumn] >= -EPSILON:
             self.__FindDualSol(c)
             optimalFound = True
         return optimalFound, pivotColumn
@@ -55,7 +62,7 @@ class Simplex:
         bestPivotValue = np.inf
         pivotRow = -1
         for i in range(self.__rows):
-            if self.__tableau[i][pivotColumn] <= 1e-4:
+            if self.__tableau[i][pivotColumn] <= EPSILON:
                 continue
 
             minTest = (
@@ -88,43 +95,27 @@ class Simplex:
             optimal, pivotColumn = self.__FindPivotColumn(c)
 
             if optimal:
-                self.__status = (
-                    f"Solucao otima encontrada em {iterations} iteracoes"
-                )
+                self.__status = ( f"Solucao otima encontrada em {iterations} iteracoes")
+                
                 optimalValues = np.zeros(self.__columns)
                 optimalValues[self.__Bvars] = self.__tableau[:, self.__columns]
                 zOptimal = sum(self.__Z * optimalValues)
+                
                 if self.__verbose:
-                    print(
-                        f"      [Simplex RSP] -> Ótimo encontrado em {iterations} iterações. FO = {zOptimal:.4f}"
-                    )
+                    print(f"      [Simplex RSP] -> Ótimo encontrado em {iterations} iterações. FO = {zOptimal:.4f}")
+                    
                 return optimalValues, zOptimal
 
             pivotRow = self.__FindPivotRow(pivotColumn)
 
             if pivotRow == -1:
                 self.__status = "O problema tem solucao ilimitada"
+                
                 if self.__verbose:
-                    print(
-                        f"      [Simplex RSP] -> Ilimitado detectado na iteração {iterations}."
-                    )
+                    print( f"      [Simplex RSP] -> Ilimitado detectado na iteração {iterations}." )
+                    
                 return None, None
-
-            var_entra = pivotColumn
-            var_sai = self.__Bvars[pivotRow]
 
             self.__Pivoting(pivotColumn, pivotRow)
             self.__Bvars[pivotRow] = pivotColumn
             iterations += 1
-
-            if self.__verbose and (
-                iterations <= 15
-                or iterations % 25 == 0
-                or iterations % 100 == 0
-            ):
-                z_atual = sum(
-                    self.__Z[self.__Bvars] * self.__tableau[:, self.__columns]
-                )
-                print(
-                    f"      [Simplex It. {iterations:3d}] Entra x_{var_entra} (custo {c[var_entra]:.3e}) | Sai x_{var_sai} (lin {pivotRow}) | FO={z_atual:.4f}"
-                )
