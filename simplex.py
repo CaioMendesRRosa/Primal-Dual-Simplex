@@ -4,7 +4,7 @@ import numpy as np
 Algoritmo simplex que utiliza o tableau
 """
 
-EPSILON = 1e-4
+EPSILON = 1e-3
 
 class Simplex:
 
@@ -80,9 +80,7 @@ class Simplex:
 
         for i in range(self.__rows):
             if i != pivotRow:
-                self.__tableau[i] -= (
-                    self.__tableau[i][pivotColumn] * self.__tableau[pivotRow]
-                )
+                self.__tableau[i] -= (self.__tableau[i][pivotColumn] * self.__tableau[pivotRow])
 
     def Solver(self):
         self.__Setup()

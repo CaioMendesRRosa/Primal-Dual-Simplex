@@ -6,7 +6,7 @@ import simplex
 Algoritmo primal-dual
 """
 
-EPSILON = 1e-4
+EPSILON = 1e-3
 
 class Primal:
 
@@ -66,18 +66,13 @@ class Primal:
         return not oldJ == self.__J
 
     def __BuildRSP(self):
-        self.__rspColumns = len(self.__J) + self.__rows
-        self.__rspRows = self.__rows
+        Aj = self.__A[:, self.__J]
 
-        self.__rspZ = [0] * len(self.__J) + [1] * self.__rows
+        self.__rspColumns = len(self.__J) + 2 * self.__rows
+
+        self.__rspZ = [0] * len(self.__J) + [1] * self.__rows + [1] * self.__rows
         self.__rspb = self.__b
-        self.__rspA = []
-
-        for i in range(self.__rspRows):
-            lineI = self.__A[i, self.__J]
-            lineI = np.concatenate([lineI, np.zeros(self.__rows)])
-            lineI[i + len(self.__J)] = 1
-            self.__rspA.append(lineI)
+        self.__rspA = list(np.hstack([Aj, np.eye(self.__rows), -np.eye(self.__rows)]))
 
     def __FindMultiplier(self, simplexRSP):
         minMultiplier = np.inf
@@ -157,8 +152,13 @@ class Primal:
             self.__DefActiveSet()
             self.__BuildRSP()
 
+            bVars = self.__GetPrevBvars() if self.__preBvars is not None else None
+            if bVars is None:
+                lenJ = len(self.__J)
+                bVars = [lenJ + i if self.__b[i] >= 0 else lenJ + self.__rows + i for i in range(self.__rows)]
+                
             simplexRSP = simplex.Simplex(self.__rspA, self.__rspb, self.__rspZ,
-                                         verbose=self.__verbose, initialBvars=self.__GetPrevBvars())
+                                         verbose=self.__verbose, initialBvars=bVars)
             optimal, zOptimal = simplexRSP.Solver()
 
             if optimal is None:
