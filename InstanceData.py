@@ -42,8 +42,12 @@ class InstanceData:
                 elif lineVal[0] == "s":
                     self.bestSol = int(lineVal[1])
 
-                elif lineVal[0] == "n" and self.problemType == "mcf":
-                    if lineVal[2] == "s":
+                elif lineVal[0] == "n":
+                    if self.problemType == "min" and lineVal[2] == "s":
+                        self.origin = int(lineVal[1])
+                    elif self.problemType == "min" and lineVal[2] == "t":
+                        self.destiny = int(lineVal[1])
+                    elif lineVal[2] == "s":
                         self.origin[int(lineVal[3]) - 1] = int(lineVal[1])
                     else:
                         self.destiny[int(lineVal[3]) - 1] = int(lineVal[1])
@@ -113,8 +117,8 @@ class InstanceData:
         restrictionS = [0] * variablesNum
         restrictionT = [0] * variablesNum
 
-        restrictionS[0] = 1
-        restrictionT[self.vertexNum - 1] = 1
+        restrictionS[self.origin - 1] = 1
+        restrictionT[self.destiny - 1] = 1
 
         A.append(restrictionS)
         A.append(restrictionT)

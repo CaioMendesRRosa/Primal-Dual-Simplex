@@ -1,5 +1,6 @@
 from pathlib import Path
 import time
+import re
 from InstanceData import InstanceData
 from primal import Primal
 from pulpSolver import *
@@ -123,19 +124,27 @@ if __name__ == "__main__":
         primal = Primal(A, b, Z, verbose=verbose)
         optimal, optimalZ = primal.Solver()
 
-        # 4. PuLP (com logs do CBC silenciados via msg=False)
+        # 4. PuLP
         if verbose:
             print(f"\n--- ETAPA {'4' if is_min else '3'}: Resolução com PuLP ---")
         prob, optimalEdges = buildModelPulp(instanceData)
 
         start_pulp = time.perf_counter()
-        prob.solve(pulp.PULP_CBC_CMD(msg=False))
+        prob.solve(pulp.PULP_CBC_CMD(msg=True, logPath="pulp.log"))
+        
         pulp_time = time.perf_counter() - start_pulp
 
         pulp_status = pulp.LpStatus.get(prob.status, "Desconhecido")
         pulp_obj = (
             pulp.value(prob.objective) if prob.objective is not None else 0.0
         )
+        
+        with open("pulp.log", "r") as file:
+            log = file.read()
+            matches = re.findall(r"Total iterations:\s*(\d+)", log)
+            matches += re.findall(r"Optimal objective .*? - (\d+) iterations", log)
+
+            pulp_iterations = int(matches[-1]) if matches else None
 
         if verbose:
             print(f"[PuLP] Status: {pulp_status}")
@@ -144,12 +153,20 @@ if __name__ == "__main__":
 
             # Variáveis
             print("\n" + "=" * 55)
-            print(">> TODAS AS VARIÁVEIS - PRIMAL SIMPLEX <<")
+            print(">> TODAS AS VARIAVEIS NAO NULAS - PRIMAL SIMPLEX <<")
             print("=" * 55)
             if optimal is not None:
                 for i, val in enumerate(optimal):
                     if abs(val) > 1e-5:
                         print(f"  x[{i}] = {val:.4f}")
+                        
+            print("=" * 55)
+            print(">> TODAS AS VARIAVEIS NAO NULAS - DUAL SIMPLEX <<")
+            print("=" * 55)
+            if optimal is not None:
+                for i, val in enumerate(optimal):
+                    if abs(val) > 1e-5:
+                        print(f"  y[{i}] = {val:.4f}")
 
             print("\n" + "=" * 55)
             print(">> TODAS AS VARIÁVEIS - PuLP <<")
@@ -168,25 +185,31 @@ if __name__ == "__main__":
                     f"{optimalZ:.2f}" if optimalZ is not None else "N/A"
                 ),
                 "simplex_t": f"{primal.executionTime:.4f}s",
+                "simplex_iterations": f"{primal.iterations}",
                 "pulp_z": f"{pulp_obj:.2f}",
                 "pulp_t": f"{pulp_time:.4f}s",
+                "pulp_iterations": f"{pulp_iterations}",
                 "sw_z": f"{sw_cut:.2f}" if sw_cut is not None else "-",
                 "sw_t": f"{sw_time:.4f}s" if sw_time is not None else "-",
             }
         )
 
     # Tabela comparativa final
-    print("\n\n" + "=" * 105)
+    print("\n\n" + "=" * 145)
     print(
-        f"{'Instância':<18} | {'Tipo':<5} | {'Z Simplex':>11} | {'T. Simplex':>11} | "
-        f"{'Z PuLP':>11} | {'T. PuLP':>11} | {'Z Stoer-W':>11} | {'T. Stoer-W':>11}"
+        f"{'Instância':<18} | {'Tipo':<5} | "
+        f"{'Z Simplex':>11} | {'T. Simplex':>11} | {'Iter. Simplex':>13} | "
+        f"{'Z PuLP':>11} | {'T. PuLP':>11} | {'Iter. PuLP':>10} | "
+        f"{'Z Stoer-W':>11} | {'T. Stoer-W':>11}"
     )
-    print("-" * 105)
+    print("-" * 145)
 
     for r in results:
         print(
-            f"{r['instance']:<18} | {r['type']:<5} | {r['simplex_z']:>11} | {r['simplex_t']:>11} | "
-            f"{r['pulp_z']:>11} | {r['pulp_t']:>11} | {r['sw_z']:>11} | {r['sw_t']:>11}"
+            f"{r['instance']:<18} | {r['type']:<5} | "
+            f"{r['simplex_z']:>11} | {r['simplex_t']:>11} | {r['simplex_iterations']:>13} | "
+            f"{r['pulp_z']:>11} | {r['pulp_t']:>11} | {r['pulp_iterations']:>10} | "
+            f"{r['sw_z']:>11} | {r['sw_t']:>11}"
         )
 
-    print("=" * 105)
+    print("=" * 145)

@@ -32,6 +32,7 @@ class Primal:
 
         self.__status = ""
         self.__executionTime = 0
+        self.__iterations = 0
         
         self.__artificialVarsSum = None
         
@@ -45,7 +46,15 @@ class Primal:
     @property
     def executionTime(self):
         return self.__executionTime
-
+    
+    @property
+    def iterations(self):
+        return self.__iterations
+    
+    @property
+    def y (self):
+        return self.__y
+    
     def __Setup(self):
         self.__A = np.array(self.__A, dtype=float)
         self.__b = np.array(self.__b, dtype=float)
@@ -55,6 +64,9 @@ class Primal:
         self.__y = [minValue] * self.__rows
 
     def __DefActiveSet(self):
+        # Pegando as variaveis ativas
+        # Custo reduzido == 0
+        
         oldJ = self.__J
         self.__J = []
 
@@ -66,6 +78,8 @@ class Primal:
         return not oldJ == self.__J
 
     def __BuildRSP(self):
+        # Construindo o subproblema restrito
+        
         m = self.__rows
         nJ = len(self.__J)
         sign = np.where(self.__b > 0, 1.0, -1.0)
@@ -77,6 +91,8 @@ class Primal:
         self.__rspInitialBvars = [nJ + i for i in range(m)]
 
     def __FindMultiplier(self, simplexRSP):
+        # Encontrado o multiplicador theta
+        
         minMultiplier = np.inf
 
         for j in range(self.__columns):
@@ -90,13 +106,14 @@ class Primal:
             if mulNum < EPSILON or mulDen < EPSILON:
                 continue
 
-            if mulNum / mulDen < minMultiplier:
-                minMultiplier = mulNum / mulDen
-
+            minMultiplier = min(mulNum / mulDen, minMultiplier)
+                
         return minMultiplier
 
 
     def __CheckOptimality (self, optimal):
+        # Verificando se o problema chegou no otimo
+        # Todas as variaveis artificiais == 0
         
         self.__artificialVarsSum = 0.0
         for i in range(len(self.__J), self.__rspColumns):
@@ -143,7 +160,7 @@ class Primal:
     def Solver(self):
         self.__Setup()
 
-        iterations = 1
+        self.__iterations = 1
         timeBegin = time.perf_counter()
 
         if self.__verbose:
@@ -154,6 +171,7 @@ class Primal:
             self.__DefActiveSet()
             self.__BuildRSP()
 
+            # Reaproveitando a base do simplex anterior
             bVars = self.__GetPrevBvars()
             if bVars is None:
                 bVars = self.__rspInitialBvars
@@ -169,7 +187,7 @@ class Primal:
             optimalFound = self.__CheckOptimality(optimal)
 
             if optimalFound:
-                self.__status = f"Solucao otima encontrada em {iterations} iteracoes"
+                self.__status = f"Solucao otima encontrada em {self.__iterations} iteracoes"
                 self.__executionTime = time.perf_counter() - timeBegin
                 return np.array(self.__xb), self.__optimalZ
 
@@ -182,8 +200,11 @@ class Primal:
             self.__y += multiplier * np.array(simplexRSP.dualSol[: self.__rows])
 
             if self.__verbose:
-                print(f"\n  [Primal-Dual It. {iterations}] |J| = {len(self.__J)}")
+                dual = self.__y @ self.__b 
+
+                print(f"\n  [Primal-Dual It. {self.__iterations}] |J| = {len(self.__J)} | Dual F0 = {dual:.3f}")
                 print(f"    -> RSP: FO = {zOptimal:.4f}, θ = {multiplier:.4e}, artificiais = {self.__artificialVarsSum:.6f}")
 
+            # Salvando a base atual
             self.__SaveBvars(simplexRSP)
-            iterations += 1
+            self.__iterations += 1
