@@ -7,7 +7,7 @@ from pulpSolver import *
 from stoerWagner import StoerWagner
 
 
-def escolher_modo(all_files):
+def StartMode(all_files):
     print("\n" + "=" * 60)
     print("               MENU DE EXECUÇÃO DE INSTÂNCIAS")
     print("=" * 60)
@@ -19,44 +19,44 @@ def escolher_modo(all_files):
 
 
     while True:
-        opcao = input("Escolha uma opção (1-4): ").strip()
+        option = input("Escolha uma opção (1-4): ").strip()
 
-        if opcao == "1":
+        if option == "1":
             print("\nInstâncias encontradas:")
             for idx, f in enumerate(all_files, 1):
                 print(f"  [{idx:2d}] {f.name}")
 
             while True:
-                escolha = input(
+                choice = input(
                     "\nDigite o número ou o nome da instância: "
                 ).strip()
-                if escolha.isdigit() and 1 <= int(escolha) <= len(all_files):
-                    return [all_files[int(escolha) - 1]], True
-                encontrados = [f for f in all_files if f.name == escolha]
-                if encontrados:
-                    return encontrados, True
+                if choice.isdigit() and 1 <= int(choice) <= len(all_files):
+                    return [all_files[int(choice) - 1]], True
+                files = [f for f in all_files if f.name == choice]
+                if files:
+                    return files, True
                 print("Instância inválida. Tente novamente.")
 
-        elif opcao == "2":
+        elif option == "2":
             return all_files, False
 
-        elif opcao == "3":
-            filtrados = [
+        elif option == "3":
+            filteredFiles = [
                 f
                 for f in all_files
                 if f.suffix == ".min"
                 or (f.suffix == ".in" and "min" in f.name.lower())
             ]
-            return filtrados, False
+            return filteredFiles, False
 
-        elif opcao == "4":
-            filtrados = [
+        elif option == "4":
+            filteredFiles = [
                 f
                 for f in all_files
                 if f.suffix == ".max"
                 or (f.suffix == ".in" and "mcf" in f.name.lower())
             ]
-            return filtrados, False
+            return filteredFiles, False
 
         else:
             print("Opção inválida! Escolha um valor entre 1 e 4.")
@@ -78,7 +78,7 @@ if __name__ == "__main__":
         print("Nenhuma instância encontrada na pasta 'instances'.")
         exit()
 
-    files, verbose = escolher_modo(all_files)
+    files, verbose = StartMode(all_files)
     results = []
 
     for file_path in files:
@@ -121,7 +121,8 @@ if __name__ == "__main__":
         
             
         A, b, Z = instanceData.InitPL(verbose=verbose)
-        primal = Primal(A, b, Z, verbose=verbose)
+        maximize = True if instanceData.problemType == "mcf" else False
+        primal = Primal(A, b, Z, verbose=verbose, maximize=maximize)
         optimal, optimalZ = primal.Solver()
 
         # 4. PuLP
@@ -130,7 +131,7 @@ if __name__ == "__main__":
         prob, optimalEdges = buildModelPulp(instanceData)
 
         start_pulp = time.perf_counter()
-        prob.solve(pulp.PULP_CBC_CMD(msg=True, logPath="pulp.log"))
+        prob.solve(pulp.PULP_CBC_CMD(msg=False, logPath="pulp.log"))
         
         pulp_time = time.perf_counter() - start_pulp
 
@@ -160,11 +161,11 @@ if __name__ == "__main__":
                     if abs(val) > 1e-5:
                         print(f"  x[{i}] = {val:.4f}")
                         
-            print("=" * 55)
+            print("\n" + "=" * 55)
             print(">> TODAS AS VARIAVEIS NAO NULAS - DUAL SIMPLEX <<")
             print("=" * 55)
             if optimal is not None:
-                for i, val in enumerate(optimal):
+                for i, val in enumerate(primal.y):
                     if abs(val) > 1e-5:
                         print(f"  y[{i}] = {val:.4f}")
 

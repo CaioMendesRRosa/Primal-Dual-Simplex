@@ -10,11 +10,12 @@ EPSILON = 1e-7
 
 class Primal:
 
-    def __init__(self, A, b, Z, verbose=False):
-        self.__A = A
-        self.__b = b
-        self.__Z = Z
+    def __init__(self, A, b, Z, verbose=False, maximize=False):
+        self.__A = np.array(A, dtype=float)
+        self.__b = np.array(b, dtype=float)
+        self.__Z = np.array(Z, dtype=float)
         self.__verbose = verbose
+        self.__maximize = -1 if maximize else 1
         self.__preBvars = None
 
         self.__rspA = None
@@ -56,10 +57,8 @@ class Primal:
         return self.__y
     
     def __Setup(self):
-        self.__A = np.array(self.__A, dtype=float)
-        self.__b = np.array(self.__b, dtype=float)
-        self.__Z = np.array(self.__Z, dtype=float)
 
+        # Definindo a solucao dual atual
         minValue = np.min(self.__Z)
         self.__y = [minValue] * self.__rows
 
@@ -124,7 +123,7 @@ class Primal:
             self.__xb = [0] * self.__columns
             for j in range(len(self.__J)):
                 self.__xb[self.__J[j]] = optimal[j]
-            self.__optimalZ = self.__Z @ self.__xb
+            self.__optimalZ = self.__maximize * self.__Z @ self.__xb
 
             return True
         
@@ -171,11 +170,12 @@ class Primal:
             self.__DefActiveSet()
             self.__BuildRSP()
 
-            # Reaproveitando a base do simplex anterior
+            # Aproveitando a base do simplex anterior
             bVars = self.__GetPrevBvars()
             if bVars is None:
                 bVars = self.__rspInitialBvars
                 
+            # Resolvendo o RSP
             simplexRSP = simplex.Simplex(self.__rspA, self.__rspb, self.__rspZ,
                                          verbose=self.__verbose, initialBvars=bVars)
             optimal, zOptimal = simplexRSP.Solver()
@@ -191,6 +191,7 @@ class Primal:
                 self.__executionTime = time.perf_counter() - timeBegin
                 return np.array(self.__xb), self.__optimalZ
 
+            # Encontrado multiplicador theta
             multiplier = self.__FindMultiplier(simplexRSP)
 
             if multiplier == np.inf:
@@ -200,7 +201,7 @@ class Primal:
             self.__y += multiplier * np.array(simplexRSP.dualSol[: self.__rows])
 
             if self.__verbose:
-                dual = self.__y @ self.__b 
+                dual = self.__maximize * self.__y @ self.__b 
 
                 print(f"\n  [Primal-Dual It. {self.__iterations}] |J| = {len(self.__J)} | Dual F0 = {dual:.3f}")
                 print(f"    -> RSP: FO = {zOptimal:.4f}, θ = {multiplier:.4e}, artificiais = {self.__artificialVarsSum:.6f}")

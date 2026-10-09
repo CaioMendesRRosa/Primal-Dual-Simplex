@@ -78,26 +78,20 @@ class StoerWagner:
         self.__Setup()
 
         if self.__verbose:
-            print(
-                f"  [Stoer-Wagner] Grafo: {self.__vertexNum} vértices e {self.__edgesNum} arestas."
-            )
+            print(f"  [Stoer-Wagner] Grafo: {self.__vertexNum} vértices e {self.__edgesNum} arestas.")
 
         timeBegin = time.perf_counter()
-        fase = 1
+        phase = 1
 
         while self.__activeVertex > 1:
             minCutPhase = self.__MinCutPhase()
             self.__minCut = min(self.__minCut, minCutPhase)
             if self.__verbose:
-                print(
-                    f"  [Stoer-Wagner] Fase {fase:2d}: Vértices restantes = {self.__activeVertex:2d} | "
-                    f"Corte da fase = {minCutPhase:8.2f} | Menor corte global = {self.__minCut:8.2f}"
-                )
-            fase += 1
+                print(f"  [Stoer-Wagner] Fase {phase:2d}: Vértices restantes = {self.__activeVertex:2d} | "
+                      f"Corte da fase = {minCutPhase:8.2f} | Menor corte global = {self.__minCut:8.2f}")
+            phase += 1
 
         self.__executionTime = time.perf_counter() - timeBegin
         if self.__verbose:
-            print(
-                f"  [Stoer-Wagner] Concluído em {self.__executionTime:.4f}s. Corte ótimo = {self.__minCut}"
-            )
+            print(f"  [Stoer-Wagner] Concluído em {self.__executionTime:.4f}s. Corte ótimo = {self.__minCut}")
         return self.__minCut
