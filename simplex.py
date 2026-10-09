@@ -4,7 +4,7 @@ import numpy as np
 Algoritmo simplex que utiliza o tableau
 """
 
-EPSILON = 1e-3
+EPSILON = 1e-7
 
 class Simplex:
 
