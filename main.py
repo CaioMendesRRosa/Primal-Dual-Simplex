@@ -106,8 +106,8 @@ if __name__ == "__main__":
             stoerWagner = StoerWagner(
                 instanceData.edges,
                 instanceData.vertexNum,
-                1,
-                instanceData.vertexNum,
+                s=instanceData.origin,
+                t=instanceData.destiny,
                 verbose=verbose,
             )
             sw_cut = stoerWagner.Solver()

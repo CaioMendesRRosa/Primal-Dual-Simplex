@@ -4,7 +4,7 @@ import numpy as np
 Algoritmo simplex que utiliza o tableau
 """
 
-EPSILON = 1e-7
+EPSILON = 1e-5
 
 class Simplex:
 
@@ -34,6 +34,7 @@ class Simplex:
     def Bvars(self):
         return self.__Bvars
 
+
     def __Setup(self):
         if self.__initialBvars != None:
             # Warm Start
@@ -45,11 +46,13 @@ class Simplex:
         self.__Bvars = [ self.__columns - self.__rows + i for i in range(self.__rows)  ]
         self.__tableau = np.hstack(([self.__A, self.__b.reshape(-1, 1)]))
 
+
     def __FindDualSol(self):
         # Encontrada a solucao dual depois de terminar o algoritmo
         B = self.__A[:, self.__Bvars]
         Cb = self.__Z[self.__Bvars]
         self.__dualSol = np.linalg.solve(B.T, Cb)
+
 
     def __FindPivotColumn(self, c):
         # Encotrando variavel que entra
@@ -59,6 +62,7 @@ class Simplex:
             self.__FindDualSol()
             optimalFound = True
         return optimalFound, pivotColumn
+
 
     def __FindPivotRow(self, pivotColumn):
         # Encontrando variavel que sai
@@ -74,6 +78,7 @@ class Simplex:
                 pivotRow = i
         return pivotRow
 
+
     def __Pivoting(self, pivotColumn, pivotRow):
         # Atualizando o tableau
         mul = self.__tableau[pivotRow, pivotColumn]
@@ -82,6 +87,7 @@ class Simplex:
         for i in range(self.__rows):
             if i != pivotRow:
                 self.__tableau[i] -= (self.__tableau[i][pivotColumn] * self.__tableau[pivotRow])
+
 
     def Solver(self):
         self.__Setup()
@@ -112,7 +118,6 @@ class Simplex:
                 self.__status = "O problema tem solucao ilimitada"
                 if self.__verbose:
                     print(f"      [Simplex RSP] -> Ilimitado detectado na iteração {iterations}.")
-                    
                 return None, None
 
             self.__Pivoting(pivotColumn, pivotRow)

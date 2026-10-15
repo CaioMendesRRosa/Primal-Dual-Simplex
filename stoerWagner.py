@@ -5,10 +5,13 @@ import numpy as np
 Algoritmo de Corte mínimo Stoer-Wagner
 """
 
+# 13
+# 20
+# 31
 
 class StoerWagner:
 
-    def __init__(self, edges, vertexNum, s, t, verbose=False):
+    def __init__(self, edges, vertexNum, s=1, t=None, verbose=False):
         self.__edges = edges
         self.__edgesNum = len(edges)
         self.__vertexNum = vertexNum
@@ -60,15 +63,19 @@ class StoerWagner:
     def __MinCutPhase(self):
         self.__d = [self.__s]
         dVertexCount = 1
-        costVertex = np.array(self.__adjMat[self.__s - 1])
+        costVertex = np.zeros(self.__vertexNum)
+        maxVertex = self.__s
 
-        while dVertexCount < self.__activeVertex - 1:
+        while dVertexCount < self.__activeVertex:
+            costVertex = costVertex + self.__adjMat[maxVertex - 1]
             maxVertex = self.__FindMaxCostVertex(costVertex)
             self.__d.append(maxVertex)
             dVertexCount += 1
-            costVertex = costVertex + self.__adjMat[maxVertex - 1]
 
-        mergeVertex = self.__d[-1]
+        if self.__t == None:
+            self.__t = self.__d[-1]
+
+        mergeVertex = self.__d[-2]
         cut = costVertex[self.__t - 1]
         self.__UpdateGraph(mergeVertex)
 
@@ -86,10 +93,11 @@ class StoerWagner:
         while self.__activeVertex > 1:
             minCutPhase = self.__MinCutPhase()
             self.__minCut = min(self.__minCut, minCutPhase)
+            phase += 1
+
             if self.__verbose:
                 print(f"  [Stoer-Wagner] Fase {phase:2d}: Vértices restantes = {self.__activeVertex:2d} | "
                       f"Corte da fase = {minCutPhase:8.2f} | Menor corte global = {self.__minCut:8.2f}")
-            phase += 1
 
         self.__executionTime = time.perf_counter() - timeBegin
         if self.__verbose:

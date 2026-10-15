@@ -6,7 +6,7 @@ import simplex
 Algoritmo primal-dual
 """
 
-EPSILON = 1e-7
+EPSILON = 1e-5
 
 class Primal:
 
