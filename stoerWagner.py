@@ -78,7 +78,7 @@ class StoerWagner:
         costVertex = np.zeros(self.__vertexNum)
         # guarda o ultimo vertice adicionado
         maxVertex = self.__s
-
+        # repete enquanto tem menos V que o total de ativos
         while dVertexCount < self.__activeVertex:
             #soma a linha do ultimo vértice
             costVertex = costVertex + self.__adjMat[maxVertex - 1]
